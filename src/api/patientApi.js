@@ -57,7 +57,7 @@ export async function registerPatientModMed(payload) {
       body: JSON.stringify(payload),
     });
 
-    if (response.status === 201) {
+    if (response.status === 200 || response.status === 201) {
       const data = await response.json();
       return { ok: true, patient: data };
     }

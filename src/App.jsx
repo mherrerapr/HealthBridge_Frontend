@@ -299,8 +299,9 @@ function App() {
 
                     await showSuccess(
                       "Paciente registrado",
-                      `Se creó ${result.patient.firstName} ${result.patient.lastName}`
+                      result.message || "El paciente fue creado correctamente."
                     );
+
 
                     setStep(STEPS.DATE_TIME);
                     return;
