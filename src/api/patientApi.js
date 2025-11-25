@@ -3,7 +3,7 @@ const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 // 🔹 Login por email + fecha
 export async function getPatientByBirthdateAndEmail({ email, birthDate }) {
-  const url = `${BASE_URL}/api/patient/getPatientByBirthdateAndEmai`;
+  const url = `${BASE_URL}/api/patient/patientConfirmation`;
 
   const payload = {
     PatientEmail: email,

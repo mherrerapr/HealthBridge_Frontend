@@ -27,7 +27,7 @@ function DoctorStep({ doctors, selectedDoctor, onSelectDoctor, onContinue }) {
                   alt={doc.name}
                   onError={(e) => {
                     e.target.src =
-                      "https://via.placeholder.com/80x80?text=DR";
+                      "https://png.pngtree.com/png-clipart/20250311/original/pngtree-charismatic-doctorsmiling-at-the-camera-doctor-healthcare-workers-photo-png-image_20638229.png";
                   }}
                 />
               </div>
@@ -36,9 +36,9 @@ function DoctorStep({ doctors, selectedDoctor, onSelectDoctor, onContinue }) {
                 <h3>{doc.name}</h3>
                 <p className="doctor-specialty">{doc.specialty}</p>
                 <p className="doctor-tag">{doc.tag}</p>
-                <p className="doctor-availability">
+                {/* <p className="doctor-availability">
                   {availableCount} citas disponibles
-                </p>
+                </p> */}
               </div>
             </button>
           );

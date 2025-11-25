@@ -6,6 +6,8 @@ import {
   registerPatient,
 } from "./api/patientApi";
 
+import { getDoctors } from "./api/doctorApi";
+
 import {
   showSuccess,
   showError,
@@ -37,48 +39,6 @@ export const STEPS = {
   PAY_FAILED: "pay_failed",
 };
 
-/* ------------------------------------------
- * DOCTORES MOCK PARA EL MVP
- * ------------------------------------------ */
-export const mockDoctors = [
-  {
-    id: 1,
-    name: "Dr. Juan Pérez",
-    specialty: "Medicina General",
-    tag: "Telemedicina · 4.8 ★",
-    photo:
-      "https://staticnew-prod.topdoctors.es/provider/1087590/image/profile/large/prof__20240410153153.png",
-    slots: ["2025-11-18 09:00", "2025-11-18 10:30", "2025-11-18 14:00"],
-  },
-  {
-    id: 2,
-    name: "Dra. Ana Gómez",
-    specialty: "Medicina General",
-    tag: "Atención en clínica · 4.9 ★",
-    photo:
-      "https://staticnew-prod.topdoctors.es/provider/1087590/image/profile/large/prof__20240410153153.png",
-    slots: ["2025-11-19 08:00", "2025-11-19 15:30"],
-  },
-  {
-    id: 3,
-    name: "Dr. Carlos Ruiz",
-    specialty: "Cardiología",
-    tag: "Cardiólogo · 4.7 ★",
-    photo:
-      "https://staticnew-prod.topdoctors.es/provider/1087590/image/profile/large/prof__20240410153153.png",
-    slots: ["2025-11-20 09:00", "2025-11-20 11:00"],
-  },
-  {
-    id: 4,
-    name: "Dra. Laura Torres",
-    specialty: "Pediatría",
-    tag: "Pediatra · 5.0 ★",
-    photo:
-      "https://staticnew-prod.topdoctors.es/provider/1087590/image/profile/large/prof__20240410153153.png",
-    slots: ["2025-11-21 08:30", "2025-11-21 10:00"],
-  },
-];
-
 function App() {
   /* ------------------------------------------
    * ESTADOS PRINCIPALES
@@ -89,6 +49,9 @@ function App() {
   const [slot, setSlot] = useState("");
 
   const [patient, setPatient] = useState(null);
+
+  const [doctors, setDoctors] = useState([]);
+  const [loadingDoctors, setLoadingDoctors] = useState(true);
 
   const [loginData, setLoginData] = useState({
     email: "",
@@ -115,7 +78,26 @@ function App() {
   const [stripeCountdown, setStripeCountdown] = useState(300);
 
   /* ------------------------------------------
-   * CONTADOR DEL PAGO
+   * CARGAR DOCTORES DESDE BACKEND (SEPARADO)
+   * ------------------------------------------ */
+  useEffect(() => {
+    async function loadDocs() {
+      try {
+        const data = await getDoctors();
+        setDoctors(data);
+      } catch (err) {
+        console.error(err);
+        showError("Error cargando doctores", err.message);
+      } finally {
+        setLoadingDoctors(false);
+      }
+    }
+
+    loadDocs();
+  }, []);
+
+  /* ------------------------------------------
+   * CONTADOR DEL PAGO (SEPARADO)
    * ------------------------------------------ */
   useEffect(() => {
     if (step !== STEPS.STRIPE) return;
@@ -158,7 +140,7 @@ function App() {
     registerData.ssn.trim() !== "";
 
   /* ------------------------------------------
-   * REINICIO COMPLETO DEL FLUJO
+   * RESET DEL FLUJO
    * ------------------------------------------ */
   const resetFlow = () => {
     setStep(STEPS.DOCTOR);
@@ -199,24 +181,28 @@ function App() {
         <ProgressBar step={step} />
 
         <section className="card">
-          {/* -------------------------------------------------------
-           * 1) SELECCIÓN DE DOCTOR
-           * ------------------------------------------------------- */}
+          {/* ------------------------------- DOCTORES ------------------------------- */}
           {step === STEPS.DOCTOR && (
-            <DoctorStep
-              doctors={mockDoctors}
-              selectedDoctor={doctor}
-              onSelectDoctor={setDoctor}
-              onContinue={() => {
-                if (!doctor) return;
-                setStep(STEPS.START);
-              }}
-            />
+            <>
+              {loadingDoctors ? (
+                <p style={{ textAlign: "center", color: "#999" }}>
+                  Cargando doctores...
+                </p>
+              ) : (
+                <DoctorStep
+                  doctors={doctors}
+                  selectedDoctor={doctor}
+                  onSelectDoctor={setDoctor}
+                  onContinue={() => {
+                    if (!doctor) return;
+                    setStep(STEPS.START);
+                  }}
+                />
+              )}
+            </>
           )}
 
-          {/* -------------------------------------------------------
-           * 2) PREGUNTAR SI ES USUARIO O SE REGISTRA
-           * ------------------------------------------------------- */}
+          {/* ------------------------------- START ------------------------------- */}
           {step === STEPS.START && (
             <StartStep
               doctor={doctor}
@@ -229,9 +215,7 @@ function App() {
             />
           )}
 
-          {/* -------------------------------------------------------
-           * 3) LOGIN – VALIDAR PACIENTE
-           * ------------------------------------------------------- */}
+          {/* ------------------------------- LOGIN ------------------------------- */}
           {step === STEPS.LOGIN && (
             <LoginStep
               loginData={loginData}
@@ -242,10 +226,7 @@ function App() {
                 if (!canLoginContinue) return;
 
                 try {
-                  const result = await getPatientByBirthdateAndEmail({
-                    email: loginData.email,
-                    birthDate: loginData.birthDate,
-                  });
+                  const result = await getPatientByBirthdateAndEmail(loginData);
 
                   if (result.ok) {
                     setPatient(result.patient);
@@ -268,26 +249,19 @@ function App() {
                       setStep(STEPS.REGISTER);
                     }
                   } else {
-                    await showError(
-                      "Error",
-                      result.message ||
-                        "Ocurrió un error al validar el paciente."
-                    );
+                    await showError("Error", result.message);
                   }
                 } catch (error) {
-                  console.error(error);
                   await showError(
                     "Error de conexión",
-                    "No fue posible conectar con el backend."
+                    "No fue posible conectar con el servidor."
                   );
                 }
               }}
             />
           )}
 
-          {/* -------------------------------------------------------
-           * 4) REGISTRO DE PACIENTE
-           * ------------------------------------------------------- */}
+          {/* ------------------------------- REGISTRO ------------------------------- */}
           {step === STEPS.REGISTER && (
             <RegisterStep
               data={registerData}
@@ -305,7 +279,7 @@ function App() {
 
                     await showSuccess(
                       "Paciente registrado",
-                      `Se creó ${result.patient.firstName} ${result.patient.lastName} (PMS: ${result.patient.pms})`
+                      `Se creó ${result.patient.firstName} ${result.patient.lastName}`
                     );
 
                     setStep(STEPS.DATE_TIME);
@@ -323,25 +297,16 @@ function App() {
                     if (swalResult.isConfirmed) {
                       setStep(STEPS.LOGIN);
                     }
-
                     return;
                   }
 
-                  if (
-                    result.validationErrors &&
-                    result.validationErrors.length > 0
-                  ) {
+                  if (result.validationErrors) {
                     await showValidationErrors(result.validationErrors);
                     return;
                   }
 
-                  await showError(
-                    "Error al registrar",
-                    result.message ||
-                      "Ocurrió un error al registrar el paciente."
-                  );
+                  await showError("Error al registrar", result.message);
                 } catch (error) {
-                  console.error(error);
                   await showError(
                     "Error de conexión",
                     "No fue posible conectar con el backend."
@@ -351,9 +316,7 @@ function App() {
             />
           )}
 
-          {/* -------------------------------------------------------
-           * 5) FECHA Y HORA (slots del doctor)
-           * ------------------------------------------------------- */}
+          {/* ------------------------------- FECHA Y HORA ------------------------------- */}
           {step === STEPS.DATE_TIME && (
             <DateTimeStep
               doctor={doctor}
@@ -368,9 +331,7 @@ function App() {
             />
           )}
 
-          {/* -------------------------------------------------------
-           * 6) PAGO
-           * ------------------------------------------------------- */}
+          {/* ------------------------------- STRIPE ------------------------------- */}
           {step === STEPS.STRIPE && (
             <StripeStep
               doctor={doctor}
@@ -382,13 +343,12 @@ function App() {
             />
           )}
 
-          {/* -------------------------------------------------------
-           * 7) RESULTADOS DEL PAGO
-           * ------------------------------------------------------- */}
+          {/* ------------------------------- PAGO ÉXITO ------------------------------- */}
           {step === STEPS.PAY_SUCCESS && (
             <PaySuccessStep onFinish={resetFlow} />
           )}
 
+          {/* ------------------------------- PAGO FALLIDO ------------------------------- */}
           {step === STEPS.PAY_FAILED && (
             <PayFailedStep
               onRetry={() => setStep(STEPS.STRIPE)}
