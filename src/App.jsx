@@ -3,7 +3,7 @@ import "./App.css";
 
 import {
   getPatientByBirthdateAndEmail,
-  registerPatient,
+  registerPatientModMed,
 } from "./api/patientApi";
 
 import { getDoctors } from "./api/doctorApi";
@@ -58,6 +58,7 @@ function App() {
     birthDate: "",
   });
 
+  // 🔹 ESTE FALTABA
   const [registerData, setRegisterData] = useState({
     firstName: "",
     lastName: "",
@@ -78,7 +79,7 @@ function App() {
   const [stripeCountdown, setStripeCountdown] = useState(300);
 
   /* ------------------------------------------
-   * CARGAR DOCTORES DESDE BACKEND (SEPARADO)
+   * CARGAR DOCTORES DESDE BACKEND
    * ------------------------------------------ */
   useEffect(() => {
     async function loadDocs() {
@@ -97,7 +98,7 @@ function App() {
   }, []);
 
   /* ------------------------------------------
-   * CONTADOR DEL PAGO (SEPARADO)
+   * CONTADOR DEL PAGO
    * ------------------------------------------ */
   useEffect(() => {
     if (step !== STEPS.STRIPE) return;
@@ -271,8 +272,27 @@ function App() {
               onContinue={async () => {
                 if (!canRegisterContinue) return;
 
+                // 🔹 AQUÍ ARMAMOS EL PAYLOAD CON registerData
+                const payload = {
+                  patientFirstName: registerData.firstName,
+                  patientLastName: registerData.lastName,
+                  patientGender: registerData.gender || "unknown",
+                  patientBirthDate: registerData.birthDate,
+                  patientEmail: registerData.email,
+                  patientMobilePhone: registerData.phone1 || "",
+                  patientHomePhone: registerData.phone2 || "",
+                  patientAddress: registerData.address || "",
+                  patientCity: "Miami",
+                  patientState: "FL",
+                  patientCountry: "United States of America",
+                  patientPostalCode: "33132",
+                  patientMaritalStatus: registerData.maritalStatus || "Single",
+                  patientPMS: "0",
+                  patientSSN: registerData.ssn,
+                };
+
                 try {
-                  const result = await registerPatient(registerData);
+                  const result = await registerPatientModMed(payload);
 
                   if (result.ok) {
                     setPatient(result.patient);
