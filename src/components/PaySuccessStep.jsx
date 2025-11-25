@@ -11,8 +11,8 @@ function PaySuccessStep({ onFinish }) {
 
       <div className="success-box">
         <p>
-          En la versión final, aquí podrías mostrar el código de confirmación,
-          resumen de la cita y botón para agregar al calendario.
+          Gracias por completar tu proceso. Tu cita ha sido programada exitosamente
+        y ya se encuentra registrada en nuestro sistema.
         </p>
       </div>
 
